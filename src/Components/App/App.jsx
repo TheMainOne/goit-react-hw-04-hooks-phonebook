@@ -1,42 +1,37 @@
-import React, { Component } from "react";
-import { nanoid } from "nanoid";
-import toast, { Toaster } from "react-hot-toast";
-import { Header, SecondHeader } from "../Header/Header";
-import Contacts from "../Contacts/Contacts";
-import ContactForm from "../ContactForm/ContactForm";
-import Filter from "../Filter/Filter";
-import { Wrapper } from "./App.styled";
-import { GlobalStyle } from "./App.styled";
+import React, { useState, useEffect } from 'react';
+import { nanoid } from 'nanoid';
+import toast, { Toaster } from 'react-hot-toast';
+import { Header, SecondHeader } from '../Header/Header';
+import Contacts from '../Contacts/Contacts';
+import ContactForm from '../ContactForm/ContactForm';
+import Filter from '../Filter/Filter';
+import { Wrapper } from './App.styled';
+import { GlobalStyle } from './App.styled';
 
-const LS_KEY = "contacts";
+const LS_KEY = 'contacts';
+const contactId = nanoid();
+const numberId = nanoid();
 
-class App extends Component {
-  state = {
-    contacts: [],
-    filter: "",
-  };
+const App = () => {
+  const [contacts, setContacts] = useState([]);
+  const [filter, setFilter] = useState('');
+  const filteredContacts = getFilteredContacts();
 
-  componentDidMount() {
+  useEffect(() => {
     const localStorageItems = JSON.parse(localStorage.getItem(LS_KEY));
 
     if (localStorageItems) {
-      this.setState((prevState) => {
-        const newState = {
-          contacts: [...prevState.contacts, ...localStorageItems.contacts],
-        };
-
-        return newState;
-      });
+      setContacts(prevState => [...prevState, ...localStorageItems]);
     }
-  }
+  }, []);
 
-  onHandleSubmit = (event) => {
+  const onHandleSubmit = event => {
     event.preventDefault();
     const form = event.target;
     const contactName = event.target.elements.name.value;
     const contactPhone = event.target.elements.number.value;
-    const isNameInContacts = this.state.contacts.find(
-      (element) => element.name === contactName
+    const isNameInContacts = contacts.find(
+      element => element.name === contactName
     );
 
     if (isNameInContacts) {
@@ -47,83 +42,67 @@ class App extends Component {
       return;
     }
 
-    this.setState((prevState) => {
-      const newState = {
-        contacts: [
-          ...prevState.contacts,
-          { id: nanoid(), name: contactName, number: contactPhone },
-        ],
-      };
+    const newContacts = [
+      ...contacts,
+      { id: nanoid(), name: contactName, number: contactPhone },
+    ];
 
-      localStorage.setItem(LS_KEY, JSON.stringify(newState));
-      return newState;
-    });
-
+    setContacts(newContacts);
+    localStorage.setItem(LS_KEY, JSON.stringify(newContacts));
     form.reset();
   };
 
-  onSearchInput = (event) => {
+  const onSearchInput = event => {
     const inputValue = event.target.value;
 
-    this.setState({ filter: inputValue });
+    setFilter(inputValue);
   };
 
-  getFilteredContacts = () => {
-    const { contacts, filter } = this.state;
+  function getFilteredContacts() {
     const normalizedFilter = filter.toLowerCase();
 
     const filteredContacts = contacts.filter(
-      (contact) =>
+      contact =>
         contact.name.toLowerCase().includes(normalizedFilter) ||
         contact.number.includes(normalizedFilter)
     );
 
     return filteredContacts;
-  };
+  }
 
-  deleteContact = (id) => {
-    this.setState((prevState) => {
-      const newContacts = prevState.contacts.filter(
-        (contact) => contact.id !== id
-      );
+  const deleteContact = id => {
+    setContacts(prevState => {
+      const newContacts = prevState.filter(contact => contact.id !== id);
 
       if (newContacts.length === 0) {
         localStorage.removeItem(LS_KEY);
-        return { contacts: [] };
+        return [];
       }
 
       localStorage.setItem(LS_KEY, JSON.stringify(newContacts));
-      return {
-        contacts: [...newContacts],
-      };
+      return [...newContacts];
     });
   };
 
-  render() {
-    const filteredContacts = this.getFilteredContacts();
-    const contactId = nanoid();
-    const numberId = nanoid();
-
-    return (
-      <Wrapper>
-        <Header />
-        <ContactForm
-          contactId={contactId}
-          numberId={numberId}
-          handleSubmit={this.onHandleSubmit}
-        />
-        <SecondHeader>Contacts</SecondHeader>
-        <Filter onSearchInput={this.onSearchInput} value={this.state.filter} />
-        <Contacts
-          contacts={this.state.contacts}
-          filteredContacts={filteredContacts}
-          deleteContact={this.deleteContact}
-        />
-        <GlobalStyle />
-        <Toaster />
-      </Wrapper>
-    );
-  }
-}
+  return (
+    <Wrapper>
+      <Header />
+      <ContactForm
+        contactId={contactId}
+        numberId={numberId}
+        handleSubmit={onHandleSubmit}
+      />
+      <SecondHeader>Contacts</SecondHeader>
+      <Filter onSearchInput={onSearchInput} value={filter} />
+      <Contacts
+        contacts={contacts}
+        filteredContacts={filteredContacts}
+        deleteContact={deleteContact}
+      />
+      <GlobalStyle />
+      <Toaster />
+    </Wrapper>
+  );
+};
 
 export default App;
